@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNS動画パフォーマンス管理</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e5e5e5;padding:16px 24px;display:flex;align-items:center;gap:12px}
+.header h1{font-size:18px;font-weight:600}
+.header .sub{font-size:12px;color:#888;margin-left:auto}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.tab{padding:9px 22px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#666;cursor:pointer;font-size:14px;font-weight:500;transition:all .15s}
+.tab.yt.active{background:#FF0000;color:#fff;border-color:#FF0000}
+.tab.tk.active{background:#111;color:#25F4EE;border-color:#111}
+.sec{display:none}.sec.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.card{background:#fff;border-radius:12px;padding:16px;border:1px solid #e5e5e5}
+.card .lbl{font-size:12px;color:#888;margin-bottom:6px}
+.card .val{font-size:22px;font-weight:600;color:#1d1d1f}
+.chart-box{background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e5e5e5}
+.chart-lbl{font-size:13px;font-weight:500;color:#666;margin-bottom:14px}
+.tbl-wrap{background:#fff;border-radius:12px;overflow:hidden;margin-bottom:20px;border:1px solid #e5e5e5}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f9f9f9;padding:11px 14px;text-align:left;font-weight:500;color:#666;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid #f0f0f0;color:#1d1d1f;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.badge.good{background:#EAF3DE;color:#27500A}
+.badge.bad{background:#FCEBEB;color:#791F1F}
+.badge.ok{background:#F3F3F3;color:#555}
+.top-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#444;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn:hover{background:#f5f5f5}
+.btn.primary{background:#FF0000;color:#fff;border-color:#FF0000}
+.btn.primary:hover{background:#cc0000}
+.btn.import{border-color:#FF0000;color:#FF0000}
+.btn.import:hover{background:#fff5f5}
+.status{font-size:12px;color:#aaa}
+.status.ok{color:#3B6D11}.status.err{color:#A32D2D}.status.loading{color:#854F0B}
+.drop-zone{border:2px dashed #ddd;border-radius:12px;padding:36px;text-align:center;margin-bottom:20px;cursor:pointer;transition:all .15s}
+.drop-zone:hover,.drop-zone.drag{border-color:#FF0000;background:#fff5f5}
+.drop-zone p{font-size:14px;color:#888;margin-bottom:6px}
+.drop-zone small{font-size:12px;color:#bbb}
+.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:center;justify-content:center}
+.modal-wrap.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:min(520px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:20px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;color:#888;margin-bottom:5px;font-weight:500}
+.fld input,.fld textarea,.fld select{width:100%;font-size:14px;padding:9px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#1d1d1f}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:none;border-color:#FF0000}
+.fld textarea{height:80px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.m-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.empty{text-align:center;color:#aaa;padding:36px;font-size:14px}
+.pager{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#888;border-top:1px solid #f0f0f0}
+.pg-btn{padding:5px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#666;cursor:pointer;font-size:13px}
+.pg-btn:hover{background:#f5f5f5}
+.pg-btn:disabled{opacity:0.4;cursor:default}
+.search-input{padding:9px 14px;border-radius:8px;border:1px solid #ddd;font-size:13px;background:#fff;color:#1d1d1f;width:220px}
+.search-input:focus{outline:none;border-color:#FF0000}
+.ic-btn{padding:4px 8px;font-size:12px;border:1px solid #e5e5e5;border-radius:6px;background:#fff;color:#888;cursor:pointer}
+.ic-btn:hover{background:#f5f5f5}
+.ic-btn.del:hover{color:#E24B4A;border-color:#E24B4A}
+</style>
+</head><body>
+<div class="header">
+  <i class="ti ti-chart-bar" style="font-size:22px;color:#FF0000"></i>
+  <h1>SNS動画パフォーマンス管理</h1>
+  <div class="sub" id="sync-status">読み込み中...</div>
+  <button class="btn" onclick="loadFromSheets()" style="margin-left:8px"><i class="ti ti-refresh"></i> 同期</button>
+</div>
+<div class="container">
+  <div class="tabs">
+    <button class="tab yt active" onclick="switchTab('yt')"><i class="ti ti-brand-youtube"></i> YouTube Shorts</button>
+    <button class="tab tk" onclick="switchTab('tk')"><i class="ti ti-brand-tiktok"></i> TikTok</button>
+  </div>
+  <div id="yt" class="sec active">
+    <div class="cards" id="yt-cards"></div>
+    <div class="chart-box">
+      <div class="chart-lbl">視聴回数 上位20本</div>
+      <div style="position:relative;height:220px"><canvas id="yt-chart"></canvas></div>
+    </div>
+    <div class="top-bar">
+      <button class="btn import" onclick="document.getElementById('csv-input').click()"><i class="ti ti-file-upload"></i> YouTube Studio CSVをインポート</button>
+      <input type="file" id="csv-input" accept=".csv,.zip" style="display:none" onchange="handleFileImport(event)">
+      <button class="btn" onclick="openModal('yt')"><i class="ti ti-plus"></i> 手動追加</button>
+      <input type="text" class="search-input" placeholder="タイトルで検索..." oninput="onSearch(this.value)">
+    </div>
+    <div class="drop-zone" id="drop-zone-yt" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="document.getElementById('csv-input').click()">
+      <p><i class="ti ti-cloud-upload" style="font-size:28px;color:#ccc;display:block;margin-bottom:8px"></i>ZIPまたはCSVをここにドラッグ＆ドロップ</p>
+      <small>YouTube Studio の「表データ.csv」または ZIPファイルに対応</small>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>公開日</th><th>タイトル</th><th>視聴回数</th><th>長さ(秒)</th><th>インプレ数</th><th>CTR%</th><th>評価</th><th>メモ・構成</th><th></th>
+        </tr></thead>
+        <tbody id="yt-tbody"></tbody>
+      </table>
+      <div class="pager" id="yt-pager"></div>
+    </div>
+  </div>
+  <div id="tk" class="sec">
+    <div class="cards" id="tk-cards"></div>
+    <div class="chart-box">
+      <div class="chart-lbl">再生回数 上位20本</div><div class="modal-wrap" id="modal-wrap">
+<div class="modal">
+  <h3 id="modal-title">動画を追加</h3>
+  <div class="fld"><label>投稿日</label><input type="date" id="f-date"></div>
+  <div class="fld"><label>タイトル</label><input type="text" id="f-title" placeholder="動画タイトル"></div>
+  <div id="yt-flds">
+    <div class="grid2">
+      <div class="fld"><label>視聴回数</label><input type="number" id="f-views" placeholder="0"></div>
+      <div class="fld"><label>長さ(秒)</label><input type="number" id="f-len" placeholder="0"></div>
+      <div class="fld"><label>インプレッション数</label><input type="number" id="f-imp" placeholder="0"></div>
+      <div class="fld"><label>CTR(%)</label><input type="number" id="f-ctr" placeholder="0.0" step="0.1"></div>
+    </div>
+  </div>
+  <div id="tk-flds" style="display:none">
+    <div class="grid2">
+      <div class="fld"><label>再生回数</label><input type="number" id="f-tk-views" placeholder="0"></div>
+      <div class="fld"><label>いいね数</label><input type="number" id="f-tk-likes" placeholder="0"></div>
+      <div class="fld"><label>シェア数</label><input type="number" id="f-tk-shares" placeholder="0"></div>
+      <div class="fld"><label>完全視聴率(%)</label><input type="number" id="f-tk-watch" placeholder="0.0" step="0.1"></div>
+      <div class="fld"><label>フォロワー増加</label><input type="number" id="f-tk-followers" placeholder="0"></div>
+    </div>
+  </div>
+  <div class="fld"><label>評価</label>
+    <select id="f-rating"><option value="good">よかった</option><option value="ok" selected>普通</option><option value="bad">よくなかった</option></select>
+  </div>
+  <div class="fld"><label>メモ・構成・気づき</label><textarea id="f-memo" placeholder="よかった点・改善点・構成メモなど自由に..."></textarea></div>
+  <div class="m-actions">
+    <button class="btn" onclick="closeModal()">キャンセル</button>
+    <button class="btn primary" id="btn-save" onclick="saveVideo()">保存</button>
+  </div>
+</div>
+</div><script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbxUNcMZFqdNpX_-2tTPh1FsO3JLxact8NUQJdZ6LlDe3vvmDkdzlWlTV9opPcRgEIEajA/exec';
+const PAGE_SIZE=25;
+const state={yt:[],tk:[]};
+let currentTab='yt',editIndex=null,charts={},searchQuery='',pages={yt:0,tk:0};
+function fmt(n){return !n||n===0?'—':Number(n).toLocaleString('ja-JP');}
+function fmtPct(n){return !n||n===0?'—':Number(n).toFixed(1)+'%';}
+function setStatus(msg,cls){const el=document.getElementById('sync-status');el.textContent=msg;el.className='sub status '+(cls||'');}
+async function loadFromSheets(){setStatus('読み込み中...','loading');try{const res=await fetch(GAS_URL+'?action=getAll');const data=await res.json();if(data.error)throw new Error(data.error);state.yt=(data.yt||[]).map(normalizeYt);state.tk=(data.tk||[]).map(normalizeTk);renderAll();setStatus('同期済み ✓','ok');}catch(e){setStatus('接続エラー','err');}}
+async function saveToSheets(){setStatus('保存中...','loading');try{const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'saveAll',yt:state.yt,tk:state.tk})});const data=await res.json();if(data.error)throw new Error(data.error);setStatus('保存完了 ✓','ok');}catch(e){setStatus('保存エラー','err');}}
+function normalizeYt(d){return{date:d.date||'',title:d.title||'',views:Number(d.views)||0,length:Number(d.length)||0,impressions:Number(d.impressions)||0,ctr:parseFloat(d.ctr)||0,rating:d.rating||'ok',memo:d.memo||''};}
+function normalizeTk(d){return{date:d.date||'',title:d.title||'',views:Number(d.views)||0,likes:Number(d.likes)||0,shares:Number(d.shares)||0,watch:parseFloat(d.watch)||0,followers:Number(d.followers)||0,rating:d.rating||'ok',memo:d.memo||''};}
+function parseCSV(text){const lines=text.split('\n').filter(l=>l.trim());const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));return lines.slice(1).map(line=>{const vals=[];let cur='';let inQ=false;for(let c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){vals.push(cur.trim());cur='';}else{cur+=c;}}vals.push(cur.trim());const obj={};headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/^"|"$/g,''));return obj;});}
+function importYouTubeCSV(text){const rows=parseCSV(text);const imported=[];for(const row of rows){const title=(row['動画のタイトル']||'').trim();if(!title||title==='合計')continue;const dateRaw=(row['動画公開時刻']||'').trim();let date='';if(dateRaw){try{const d=new Date(dateRaw);if(!isNaN(d)){date=d.toISOString().slice(0,10);}}catch(e){}}const views=parseInt((row['視聴回数']||'0').replace(/,/g,''))||0;const length=parseInt(row['長さ']||'0')||0;const impressions=parseInt((row['インプレッション数']||'0').replace(/,/g,''))||0;const ctr=parseFloat((row['インプレッションのクリック率 (%)']||'0').replace('%',''))||0;imported.push(normalizeYt({date,title,views,length,impressions,ctr,rating:'ok',memo:''}));}return imported;}
+async function handleFileImport(event){const file=event.target.files[0];if(!file)return;setStatus('インポート中...','loading');try{let csvText='';if(file.name.endsWith('.zip')){const zip=await JSZip.loadAsync(file);const csvFile=zip.file('表データ.csv');if(!csvFile)throw new Error('表データ.csv が見つかりません');const buf=await csvFile.async('arraybuffer');csvText=new TextDecoder('utf-8').decode(buf);}else{csvText=await file.text();}const imported=importYouTubeCSV(csvText);if(!imported.length)throw new Error('データが見つかりませんでした');const existing=new Set(state.yt.map(d=>d.title+'|'+d.date));let added=0;for(const item of imported){if(!existing.has(item.title+'|'+item.date)){state.yt.push(item);added++;}}renderAll();await saveToSheets();setStatus(`${added}本インポート完了 ✓`,'ok');document.getElementById('csv-input').value='';}catch(e){setStatus('インポートエラー: '+e.message,'err');}}
+function onDragOver(e){e.preventDefault();document.getElementById('drop-zone-yt').classList.add('drag');}
+function onDragLeave(){document.getElementById('drop-zone-yt').classList.remove('drag');}
+function onDrop(e){e.preventDefault();document.getElementById('drop-zone-yt').classList.remove('drag');const file=e.dataTransfer.files[0];if(file){const dt=new DataTransfer();dt.items.add(file);const input=document.getElementById('csv-input');input.files=dt.files;handleFileImport({target:input});}}
+function onSearch(val){searchQuery=val.toLowerCase();pages[currentTab]=0;renderTable();}
+function switchTab(tab){currentTab=tab;searchQuery='';document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));document.querySelector('.tab.'+tab).classList.add('active');document.getElementById(tab).classList.add('active');renderAll();}
+function renderAll(){renderCards();renderChart();renderTable();}
+function renderCards(){const d=state[currentTab];const el=document.getElementById(currentTab+'-cards');if(!d.length){el.innerHTML='';return;}if(currentTab==='yt'){const tv=d.reduce((s,x)=>s+x.views,0);const avgV=Math.round(tv/d.length);const top=d.reduce((a,b)=>a.views>b.views?a:b,d[0]);const avgCtr=d.filter(x=>x.ctr>0).length?(d.reduce((s,x)=>s+x.ctr,0)/d.filter(x=>x.ctr>0).length).toFixed(1):'—';el.innerHTML=`<div class="card"><div class="lbl">総視聴回数</div><div class="val">${tv.toLocaleString('ja-JP')}</div></div><div class="card"><div class="lbl">動画本数</div><div class="val">${d.length}本</div></div><div class="card"><div class="lbl">平均視聴回数/本</div><div class="val">${avgV.toLocaleString()}</div></div><div class="card"><div class="lbl">平均CTR</div><div class="val">${avgCtr}%</div></div><div class="card"><div class="lbl">最多視聴</div><div class="val">${top.views.toLocaleString()}回</div></div>`;}else{const tv=d.reduce((s,x)=>s+x.views,0);const tl=d.reduce((s,x)=>s+x.likes,0);const aw=d.filter(x=>x.watch>0).length?(d.reduce((s,x)=>s+x.watch,0)/d.filter(x=>x.watch>0).length).toFixed(1):'—';el.innerHTML=`<div class="card"><div class="lbl">総再生回数</div><div class="val">${tv.toLocaleString()}</div></div><div class="card"><div class="lbl">動画本数</div><div class="val">${d.length}本</div></div><div class="card"><div class="lbl">総いいね</div><div class="val">${tl.toLocaleString()}</div></div><div class="card"><div class="lbl">平均完全視聴率</div><div class="val">${aw}%</div></div>`;}}
+function renderChart(){const id=currentTab+'-chart';if(charts[currentTab]){charts[currentTab].destroy();}const sorted=[...state[currentTab]].sort((a,b)=>b.views-a.views).slice(0,20);const col=currentTab==='yt'?'#FF0000':'#25F4EE';charts[currentTab]=new Chart(document.getElementById(id),{type:'bar',data:{labels:sorted.map(d=>d.title.length>18?d.title.slice(0,18)+'…':d.title),datasets:[{label:'視聴回数',data:sorted.map(d=>d.views),backgroundColor:col+'bb',borderColor:col,borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v>=10000?(v/10000).toFixed(0)+'万':v,font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}},x:{ticks:{font:{size:10},maxRotation:45},grid:{display:false}}}}});}
+function renderTable(){const filtered=state[currentTab].filter(d=>!searchQuery||d.title.toLowerCase().includes(searchQuery));const sorted=[...filtered].map(d=>({...d,origIdx:state[currentTab].indexOf(d)})).sort((a,b)=>b.views-a.views);const page=pages[currentTab];const paged=sorted.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);const tbody=document.getElementById(currentTab+'-tbody');const bmap={good:'<span class="badge good">よかった</span>',ok:'<span class="badge ok">普通</span>',bad:'<span class="badge bad">よくなかった</span>'};if(!paged.length){tbody.innerHTML=`<tr><td colspan="9" class="empty">データがありません。CSVをインポートするか手動追加してください。</td></tr>`;document.getElementById(currentTab+'-pager').innerHTML='';return;}if(currentTab==='yt'){tbody.innerHTML=paged.map(d=>`<tr><td style="white-space:nowrap;font-size:12px">${d.date}</td><td style="max-width:200px;font-size:12px;white-space:normal;line-height:1.4" title="${d.title}">${d.title}</td><td class="num">${fmt(d.views)}</td><td class="num">${d.length||'—'}</td><td class="num">${fmt(d.impressions)}</td><td class="num">${fmtPct(d.ctr)}</td><td>${bmap[d.rating]||''}</td><td style="max-width:150px;font-size:11px;color:#888;white-space:normal" title="${d.memo}">${d.memo?d.memo.slice(0,30)+(d.memo.length>30?'…':''):''}</td><td><div style="display:flex;gap:4px"><button class="ic-btn" onclick="editVideo(${d.origIdx})"><i class="ti ti-edit"></i></button><button class="ic-btn del" onclick="deleteVideo(${d.origIdx})"><i class="ti ti-trash"></i></button></div></td></tr>`).join('');}else{tbody.innerHTML=paged.map(d=>`<tr><td style="white-space:nowrap;font-size:12px">${d.date}</td><td style="max-width:200px;font-size:12px;white-space:normal;line-height:1.4" title="${d.title}">${d.title}</td><td class="num">${fmt(d.views)}</td><td class="num">${fmt(d.likes)}</td><td class="num">${fmtPct(d.watch)}</td><td>${bmap[d.rating]||''}</td><td style="max-width:150px;font-size:11px;color:#888;white-space:normal" title="${d.memo}">${d.memo?d.memo.slice(0,30)+(d.memo.length>30?'…':''):''}</td><td><div style="display:flex;gap:4px"><button class="ic-btn" onclick="editVideo(${d.origIdx})"><i class="ti ti-edit"></i></button><button class="ic-btn del" onclick="deleteVideo(${d.origIdx})"><i class="ti ti-trash"></i></button></div></td></tr>`).join('');}const totalPages=Math.ceil(sorted.length/PAGE_SIZE);document.getElementById(currentTab+'-pager').innerHTML=totalPages>1?`<button class="pg-btn" onclick="changePage(-1)" ${page===0?'disabled':''}>← 前</button><span>${page+1} / ${totalPages}ページ（${sorted.length}本）</span><button class="pg-btn" onclick="changePage(1)" ${page>=totalPages-1?'disabled':''}>次 →</button>`:`<span style="font-size:12px;color:#aaa">${sorted.length}本</span>`;}
+function changePage(dir){pages[currentTab]=Math.max(0,pages[currentTab]+dir);renderTable();}
+function openModal(tab,idx){editIndex=idx!=null?idx:null;document.getElementById('yt-flds').style.display=tab==='yt'?'block':'none';document.getElementById('tk-flds').style.display=tab==='tk'?'block':'none';document.getElementById('modal-title').textContent=idx!=null?'動画を編集':'動画を追加';['f-date','f-title','f-views','f-len','f-imp','f-ctr','f-tk-views','f-tk-likes','f-tk-shares','f-tk-watch','f-tk-followers','f-memo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});document.getElementById('f-rating').value='ok';document.getElementById('f-date').value=new Date().toISOString().slice(0,10);if(idx!=null){const d=state[tab][idx];document.getElementById('f-date').value=d.date||'';document.getElementById('f-title').value=d.title||'';document.getElementById('f-rating').value=d.rating||'ok';document.getElementById('f-memo').value=d.memo||'';if(tab==='yt'){document.getElementById('f-views').value=d.views||'';document.getElementById('f-len').value=d.length||'';document.getElementById('f-imp').value=d.impressions||'';document.getElementById('f-ctr').value=d.ctr||'';}else{document.getElementById('f-tk-views').value=d.views||'';document.getElementById('f-tk-likes').value=d.likes||'';document.getElementById('f-tk-shares').value=d.shares||'';document.getElementById('f-tk-watch').value=d.watch||'';document.getElementById('f-tk-followers').value=d.followers||'';}}document.getElementById('modal-wrap').classList.add('open');}
+function closeModal(){document.getElementById('modal-wrap').classList.remove('open');}
+function editVideo(idx){openModal(currentTab,idx);}
+function deleteVideo(idx){if(!confirm('削除しますか？'))return;state[currentTab].splice(idx,1);renderAll();saveToSheets();}
+async function saveVideo(){const tab=currentTab;const entry=tab==='yt'?normalizeYt({date:document.getElementById('f-date').value,title:document.getElementById('f-title').value,views:document.getElementById('f-views').value,length:document.getElementById('f-len').value,impressions:document.getElementById('f-imp').value,ctr:document.getElementById('f-ctr').value,rating:document.getElementById('f-rating').value,memo:document.getElementById('f-memo').value}):normalizeTk({date:document.getElementById('f-date').value,title:document.getElementById('f-title').value,views:document.getElementById('f-tk-views').value,likes:document.getElementById('f-tk-likes').value,shares:document.getElementById('f-tk-shares').value,watch:document.getElementById('f-tk-watch').value,followers:document.getElementById('f-tk-followers').value,rating:document.getElementById('f-rating').value,memo:document.getElementById('f-memo').value});if(editIndex!=null){state[tab][editIndex]=entry;}else{state[tab].push(entry);}closeModal();renderAll();await saveToSheets();}
+document.getElementById('modal-wrap').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+loadFromSheets();
+</script>
+</body>
+</html>
